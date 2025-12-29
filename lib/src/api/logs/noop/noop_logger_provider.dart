@@ -14,5 +14,5 @@ class NoopLoggerProvider implements LoggerProvider {
     String schemaUrl = '',
     List<Attribute> attributes = const [],
   }) =>
-      NoopLogger();
+      const NoopLogger();
 }
