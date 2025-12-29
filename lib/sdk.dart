@@ -28,6 +28,35 @@ export 'src/sdk/logs/sampling/log_sampling_result.dart'
     show LogSamplingDecision, LogSamplingResult;
 export 'src/sdk/logs/sampling/severity_based_log_sampler.dart'
     show SeverityBasedLogSampler;
+export 'src/sdk/metrics/exporters/console_metric_exporter.dart'
+    show ConsoleMetricExporter;
+export 'src/sdk/metrics/exporters/in_memory_metric_exporter.dart'
+    show InMemoryMetricExporter;
+export 'src/sdk/metrics/exporters/metric_exporter.dart' show MetricExporter;
+export 'src/sdk/metrics/filtering/always_record_filter.dart'
+    show AlwaysRecordFilter;
+export 'src/sdk/metrics/filtering/attribute_based_filter.dart'
+    show AttributeBasedFilter;
+export 'src/sdk/metrics/filtering/metric_filter.dart'
+    show MetricFilter, MetricFilterDecision, MetricFilterResult;
+export 'src/sdk/metrics/filtering/never_record_filter.dart'
+    show NeverRecordFilter;
+export 'src/sdk/metrics/meter.dart' show MeterImpl;
+export 'src/sdk/metrics/meter_provider.dart' show MeterProviderImpl;
+export 'src/sdk/metrics/metric_data.dart'
+    show
+        MetricData,
+        MetricDataPoint,
+        MetricDescriptor,
+        HistogramDataPoint,
+        HistogramBucket,
+        InstrumentType,
+        AggregationType;
+export 'src/sdk/metrics/readers/manual_metric_reader.dart'
+    show ManualMetricReader;
+export 'src/sdk/metrics/readers/metric_reader.dart' show MetricReader;
+export 'src/sdk/metrics/readers/periodic_metric_reader.dart'
+    show PeriodicMetricReader;
 export 'src/sdk/resource/resource.dart' show Resource;
 export 'src/sdk/time_providers/datetime_time_provider.dart'
     show DateTimeTimeProvider;

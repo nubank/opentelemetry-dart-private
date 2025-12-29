@@ -1,21 +1,22 @@
-import 'package:fixnum/fixnum.dart';
 import 'package:opentelemetry/api.dart' as api;
 import '../../../sdk.dart' as sdk;
-import '../../api/metrics/counter.dart' as api_counter;
+import '../../api/metrics/observable_gauge.dart' as api_observable;
 import 'metric_data.dart';
 
-class CounterImpl<T extends num> implements api_counter.Counter<T> {
+class ObservableGaugeImpl<T extends num>
+    implements api_observable.ObservableGauge<T> {
   final String _name;
   final String? _description;
   final String? _unit;
   final sdk.TimeProvider _timeProvider;
   final sdk.MetricFilter _filter;
-  final Map<String, T> _measurements = {};
+  final api_observable.ObservableCallback<T> _callback;
+  final Map<String, T> _observations = {};
   final Map<String, List<api.Attribute>> _attributes = {};
-  final Map<String, Int64> _timestamps = {};
 
-  CounterImpl(
+  ObservableGaugeImpl(
     this._name,
+    this._callback,
     this._timeProvider,
     this._filter, {
     String? description,
@@ -23,18 +24,15 @@ class CounterImpl<T extends num> implements api_counter.Counter<T> {
   })  : _description = description,
         _unit = unit;
 
-  @override
-  void add(T value, {List<api.Attribute>? attributes, api.Context? context}) {
-    if (value < 0) {
-      // Counter values must be non-negative
-      return;
-    }
+  void collect() {
+    _observations.clear();
+    _attributes.clear();
+    _callback(_ObservableResultImpl<T>(this));
+  }
 
-    final effectiveAttributes = attributes ?? [];
-
+  void _observe(T value, List<api.Attribute> attributes) {
     // Apply filter decision
-    final filterResult =
-        _filter.shouldRecord(_name, value, effectiveAttributes, context);
+    final filterResult = _filter.shouldRecord(_name, value, attributes, null);
 
     // Drop the measurement if filter decision says so
     if (filterResult.decision == sdk.MetricFilterDecision.drop) {
@@ -42,9 +40,8 @@ class CounterImpl<T extends num> implements api_counter.Counter<T> {
     }
 
     final attrKey = _attributesKey(filterResult.attributes);
-    _measurements[attrKey] = (_measurements[attrKey] ?? 0 as T) + value as T;
+    _observations[attrKey] = value;
     _attributes[attrKey] = filterResult.attributes;
-    _timestamps[attrKey] = _timeProvider.now;
   }
 
   String _attributesKey(List<api.Attribute> attributes) {
@@ -55,12 +52,13 @@ class CounterImpl<T extends num> implements api_counter.Counter<T> {
   }
 
   List<MetricDataPoint<T>> collectDataPoints() {
+    collect();
     final dataPoints = <MetricDataPoint<T>>[];
-    for (final entry in _measurements.entries) {
+    for (final entry in _observations.entries) {
       dataPoints.add(MetricDataPoint<T>(
         attributes: _attributes[entry.key] ?? [],
         value: entry.value,
-        timestamp: _timestamps[entry.key] ?? _timeProvider.now,
+        timestamp: _timeProvider.now,
       ));
     }
     return dataPoints;
@@ -70,6 +68,18 @@ class CounterImpl<T extends num> implements api_counter.Counter<T> {
         name: _name,
         description: _description,
         unit: _unit,
-        type: InstrumentType.counter,
+        type: InstrumentType.observableGauge,
       );
+}
+
+class _ObservableResultImpl<T extends num>
+    implements api_observable.ObservableResult<T> {
+  final ObservableGaugeImpl<T> _gauge;
+
+  _ObservableResultImpl(this._gauge);
+
+  @override
+  void observe(T value, {List<api.Attribute>? attributes}) {
+    _gauge._observe(value, attributes ?? []);
+  }
 }

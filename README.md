@@ -164,6 +164,104 @@ Available samplers:
 - `AlwaysOffLogSampler` - Drops all logs
 - `SeverityBasedLogSampler` - Records logs based on minimum severity level
 
+## Metrics
+
+OpenTelemetry provides a metrics API and SDK for capturing measurements and aggregations.
+
+### Initialize the Meter Provider
+
+```dart
+import 'package:opentelemetry/sdk.dart';
+import 'package:opentelemetry/api.dart';
+
+void main() {
+  // Create a meter provider with readers and exporters
+  final meterProvider = MeterProviderImpl(
+    readers: [
+      PeriodicMetricReader(
+        ConsoleMetricExporter(),
+        interval: Duration(seconds: 30),
+      ),
+    ],
+  );
+
+  // Get a meter instance
+  final meter = meterProvider.getMeter('my-app');
+}
+```
+
+### Record Metrics
+
+```dart
+import 'package:opentelemetry/api.dart';
+
+void main() {
+  final meter = meterProvider.getMeter('my-app');
+
+  // Create a counter for monotonically increasing values
+  final requestCounter = meter.createCounter<int>('requests');
+  requestCounter.add(1, attributes: [
+    Attribute.fromString('http.method', 'GET'),
+    Attribute.fromString('http.route', '/api/users'),
+  ]);
+
+  // Create an UpDownCounter for values that can go up or down
+  final activeConnections = meter.createUpDownCounter<int>('active_connections');
+  activeConnections.add(1); // Connection opened
+  activeConnections.add(-1); // Connection closed
+
+  // Create a histogram for recording distributions
+  final requestDuration = meter.createHistogram<double>('request_duration');
+  requestDuration.record(0.250, attributes: [
+    Attribute.fromString('http.route', '/api/users'),
+  ]);
+
+  // Create an observable gauge for async measurements
+  final cpuUsage = meter.createObservableGauge<double>(
+    'cpu_usage',
+    callback: (observer) {
+      observer([GaugeObservation(getCurrentCpuUsage())]);
+    },
+  );
+}
+```
+
+See the [metrics example](./example/metrics_example.dart) for more information.
+
+### Metric Filtering
+
+Control which metric measurements are recorded using filters:
+
+```dart
+import 'package:opentelemetry/sdk.dart';
+
+void main() {
+  // Only record metrics with 'environment=production' attribute
+  final meterProvider = MeterProviderImpl(
+    readers: [PeriodicMetricReader(ConsoleMetricExporter())],
+    filter: AttributeBasedFilter({'environment': 'production'}),
+  );
+
+  final meter = meterProvider.get('my-app');
+  final counter = meter.createCounter<int>('requests');
+  
+  // This will be dropped (doesn't match filter)
+  counter.add(1, attributes: [
+    Attribute.fromString('environment', 'development'),
+  ]);
+  
+  // This will be recorded (matches filter)
+  counter.add(1, attributes: [
+    Attribute.fromString('environment', 'production'),
+  ]);
+}
+```
+
+Available filters:
+- `AlwaysRecordFilter` - Records all measurements (default)
+- `NeverRecordFilter` - Drops all measurements
+- `AttributeBasedFilter` - Records measurements based on required attributes
+
 #### High Resolution Timestamps
 
 A tracer provider can register a web-specific time provider that uses the browser's [performance API](https://developer.mozilla.org/en-US/docs/Web/API/Performance/now) instead of [DateTime](https://api.dart.dev/stable/dart-core/DateTime-class.html) when recording timestamps for a span's start timestamp, end timestamp, and span events.

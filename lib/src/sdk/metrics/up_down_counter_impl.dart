@@ -1,10 +1,11 @@
 import 'package:fixnum/fixnum.dart';
 import 'package:opentelemetry/api.dart' as api;
 import '../../../sdk.dart' as sdk;
-import '../../api/metrics/counter.dart' as api_counter;
+import '../../api/metrics/up_down_counter.dart' as api_up_down_counter;
 import 'metric_data.dart';
 
-class CounterImpl<T extends num> implements api_counter.Counter<T> {
+class UpDownCounterImpl<T extends num>
+    implements api_up_down_counter.UpDownCounter<T> {
   final String _name;
   final String? _description;
   final String? _unit;
@@ -14,7 +15,7 @@ class CounterImpl<T extends num> implements api_counter.Counter<T> {
   final Map<String, List<api.Attribute>> _attributes = {};
   final Map<String, Int64> _timestamps = {};
 
-  CounterImpl(
+  UpDownCounterImpl(
     this._name,
     this._timeProvider,
     this._filter, {
@@ -25,11 +26,6 @@ class CounterImpl<T extends num> implements api_counter.Counter<T> {
 
   @override
   void add(T value, {List<api.Attribute>? attributes, api.Context? context}) {
-    if (value < 0) {
-      // Counter values must be non-negative
-      return;
-    }
-
     final effectiveAttributes = attributes ?? [];
 
     // Apply filter decision
@@ -70,6 +66,6 @@ class CounterImpl<T extends num> implements api_counter.Counter<T> {
         name: _name,
         description: _description,
         unit: _unit,
-        type: InstrumentType.counter,
+        type: InstrumentType.upDownCounter,
       );
 }

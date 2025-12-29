@@ -1,6 +1,3 @@
-// Copyright 2021-2022 Workiva.
-// Licensed under the Apache License, Version 2.0. Please see https://github.com/Workiva/opentelemetry-dart/blob/master/LICENSE for more information
-
 @TestOn('vm')
 
 import 'package:logging/logging.dart';
@@ -24,7 +21,7 @@ void main() {
 
     test('getting a meter by same name will return the same instance', () {
       const meterName = 'meterA';
-      final meterProvider = sdk.MeterProvider(resource: sdk.Resource([]));
+      final meterProvider = sdk.MeterProviderImpl(resource: sdk.Resource([]));
       final meterA = meterProvider.get(meterName);
       final meterB = meterProvider.get(meterName);
 
@@ -35,7 +32,7 @@ void main() {
         () {
       const meterNameA = 'meterA';
       const meterNameB = 'meterB';
-      final meterProvider = sdk.MeterProvider(resource: sdk.Resource([]));
+      final meterProvider = sdk.MeterProviderImpl(resource: sdk.Resource([]));
       final meterA = meterProvider.get(meterNameA);
       final meterB = meterProvider.get(meterNameB);
 
@@ -45,7 +42,7 @@ void main() {
     test('getting by name and version will return the same meter', () {
       const meterName = 'meterA';
       const version = 'v2';
-      final meterProvider = sdk.MeterProvider(resource: sdk.Resource([]));
+      final meterProvider = sdk.MeterProviderImpl(resource: sdk.Resource([]));
       final meterA = meterProvider.get(meterName, version: version);
       final meterB = meterProvider.get(meterName, version: version);
 
@@ -58,7 +55,7 @@ void main() {
       const meterName = 'meterA';
       const versionA = 'v1';
       const versionB = 'v2';
-      final meterProvider = sdk.MeterProvider(resource: sdk.Resource([]));
+      final meterProvider = sdk.MeterProviderImpl(resource: sdk.Resource([]));
       final meterA = meterProvider.get(meterName, version: versionA);
       final meterB = meterProvider.get(meterName, version: versionB);
 
@@ -71,7 +68,7 @@ void main() {
       const meterName = 'meterA';
       const version = 'v2';
       const url = 'http:schemas.com';
-      final meterProvider = sdk.MeterProvider(resource: sdk.Resource([]));
+      final meterProvider = sdk.MeterProviderImpl(resource: sdk.Resource([]));
       final meterA =
           meterProvider.get(meterName, version: version, schemaUrl: url);
       final meterB =
@@ -87,7 +84,7 @@ void main() {
       const version = 'v2';
       const urlA = 'http:schemas.com';
       const urlB = 'https:schemas.com';
-      final meterProvider = sdk.MeterProvider(resource: sdk.Resource([]));
+      final meterProvider = sdk.MeterProviderImpl(resource: sdk.Resource([]));
       final meterA =
           meterProvider.get(meterName, version: version, schemaUrl: urlA);
       final meterB =
@@ -106,7 +103,7 @@ void main() {
         api.Attribute.fromString('keyA', 'valueA'),
         api.Attribute.fromString('KeyB', 'valueBBB')
       ];
-      final meterProvider = sdk.MeterProvider(resource: sdk.Resource([]));
+      final meterProvider = sdk.MeterProviderImpl(resource: sdk.Resource([]));
       final meterA = meterProvider.get(meterName,
           version: version, schemaUrl: url, attributes: attributes);
       final meterB = meterProvider.get(meterName,
@@ -129,7 +126,7 @@ void main() {
         api.Attribute.fromString('keyA', 'valueA'),
         api.Attribute.fromString('KeyB', 'valueB')
       ];
-      final meterProvider = sdk.MeterProvider(resource: sdk.Resource([]));
+      final meterProvider = sdk.MeterProviderImpl(resource: sdk.Resource([]));
       final meterA = meterProvider.get(meterName,
           version: version, schemaUrl: url, attributes: attributesA);
       final meterB = meterProvider.get(meterName,
@@ -140,7 +137,7 @@ void main() {
 
     test('resource can be set', () {
       final resource = sdk.Resource([api.Attribute.fromString('foo', 'bar')]);
-      final provider = sdk.MeterProvider(resource: resource);
+      final provider = sdk.MeterProviderImpl(resource: resource);
       expect(identical(resource, provider.resource), true);
     });
 

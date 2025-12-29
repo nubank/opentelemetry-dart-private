@@ -20,6 +20,13 @@ export 'src/api/instrumentation_library.dart' show InstrumentationLibrary;
 export 'src/api/logs/log_record.dart' show LogRecord, SeverityNumber;
 export 'src/api/logs/logger.dart' show Logger;
 export 'src/api/logs/logger_provider.dart' show LoggerProvider;
+export 'src/api/metrics/counter.dart' show Counter;
+export 'src/api/metrics/histogram.dart' show Histogram;
+export 'src/api/metrics/meter.dart' show Meter;
+export 'src/api/metrics/meter_provider.dart' show MeterProvider;
+export 'src/api/metrics/observable_gauge.dart'
+    show ObservableGauge, ObservableCallback, ObservableResult;
+export 'src/api/metrics/up_down_counter.dart' show UpDownCounter;
 export 'src/api/open_telemetry.dart'
     show
         globalTextMapPropagator,

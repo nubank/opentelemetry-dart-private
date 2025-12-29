@@ -1,20 +1,39 @@
+import 'dart:math' as math;
 import 'package:fixnum/fixnum.dart';
 import 'package:opentelemetry/api.dart' as api;
 import '../../../sdk.dart' as sdk;
-import '../../api/metrics/counter.dart' as api_counter;
+import '../../api/metrics/histogram.dart' as api_histogram;
 import 'metric_data.dart';
 
-class CounterImpl<T extends num> implements api_counter.Counter<T> {
+class HistogramImpl<T extends num> implements api_histogram.Histogram<T> {
   final String _name;
   final String? _description;
   final String? _unit;
   final sdk.TimeProvider _timeProvider;
   final sdk.MetricFilter _filter;
-  final Map<String, T> _measurements = {};
+  final Map<String, List<T>> _measurements = {};
   final Map<String, List<api.Attribute>> _attributes = {};
   final Map<String, Int64> _timestamps = {};
 
-  CounterImpl(
+  // Default histogram buckets
+  static const List<double> _defaultBoundaries = [
+    0,
+    5,
+    10,
+    25,
+    50,
+    75,
+    100,
+    250,
+    500,
+    1000,
+    2500,
+    5000,
+    7500,
+    10000
+  ];
+
+  HistogramImpl(
     this._name,
     this._timeProvider,
     this._filter, {
@@ -24,12 +43,8 @@ class CounterImpl<T extends num> implements api_counter.Counter<T> {
         _unit = unit;
 
   @override
-  void add(T value, {List<api.Attribute>? attributes, api.Context? context}) {
-    if (value < 0) {
-      // Counter values must be non-negative
-      return;
-    }
-
+  void record(T value,
+      {List<api.Attribute>? attributes, api.Context? context}) {
     final effectiveAttributes = attributes ?? [];
 
     // Apply filter decision
@@ -42,7 +57,7 @@ class CounterImpl<T extends num> implements api_counter.Counter<T> {
     }
 
     final attrKey = _attributesKey(filterResult.attributes);
-    _measurements[attrKey] = (_measurements[attrKey] ?? 0 as T) + value as T;
+    _measurements.putIfAbsent(attrKey, () => []).add(value);
     _attributes[attrKey] = filterResult.attributes;
     _timestamps[attrKey] = _timeProvider.now;
   }
@@ -54,22 +69,49 @@ class CounterImpl<T extends num> implements api_counter.Counter<T> {
     return sorted.map((a) => '${a.key}=${a.value}').join(',');
   }
 
-  List<MetricDataPoint<T>> collectDataPoints() {
-    final dataPoints = <MetricDataPoint<T>>[];
+  List<HistogramDataPoint> collectHistogramDataPoints() {
+    final dataPoints = <HistogramDataPoint>[];
     for (final entry in _measurements.entries) {
-      dataPoints.add(MetricDataPoint<T>(
+      final values = entry.value;
+      if (values.isEmpty) continue;
+
+      final buckets = _createBuckets(values);
+      final sum = values.fold<num>(0, (sum, v) => sum + v);
+      final min = values.reduce((a, b) => math.min(a, b));
+      final max = values.reduce((a, b) => math.max(a, b));
+
+      dataPoints.add(HistogramDataPoint(
         attributes: _attributes[entry.key] ?? [],
-        value: entry.value,
         timestamp: _timestamps[entry.key] ?? _timeProvider.now,
+        count: values.length,
+        sum: sum,
+        min: min,
+        max: max,
+        buckets: buckets,
       ));
     }
     return dataPoints;
+  }
+
+  List<HistogramBucket> _createBuckets(List<T> values) {
+    final buckets = <HistogramBucket>[];
+    for (var i = 0; i < _defaultBoundaries.length - 1; i++) {
+      final lower = _defaultBoundaries[i];
+      final upper = _defaultBoundaries[i + 1];
+      final count = values.where((v) => v >= lower && v < upper).length;
+      buckets.add(HistogramBucket(
+        lowerBound: lower,
+        upperBound: upper,
+        count: count,
+      ));
+    }
+    return buckets;
   }
 
   MetricDescriptor get descriptor => MetricDescriptor(
         name: _name,
         description: _description,
         unit: _unit,
-        type: InstrumentType.counter,
+        type: InstrumentType.histogram,
       );
 }
