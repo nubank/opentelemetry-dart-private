@@ -17,6 +17,9 @@ export 'src/api/context/context_manager.dart'
     show globalContextManager, registerGlobalContextManager;
 export 'src/api/exporters/span_exporter.dart' show SpanExporter;
 export 'src/api/instrumentation_library.dart' show InstrumentationLibrary;
+export 'src/api/logs/log_record.dart' show LogRecord, SeverityNumber;
+export 'src/api/logs/logger.dart' show Logger;
+export 'src/api/logs/logger_provider.dart' show LoggerProvider;
 export 'src/api/open_telemetry.dart'
     show
         globalTextMapPropagator,

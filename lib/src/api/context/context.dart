@@ -4,13 +4,13 @@
 import 'dart:async';
 
 import 'package:collection/collection.dart';
-import 'package:logging/logging.dart';
+import 'package:logging/logging.dart' as logging;
 import 'package:meta/meta.dart';
 
 import '../../../api.dart';
 import '../trace/nonrecording_span.dart' show NonRecordingSpan;
 
-final Logger _log = Logger('opentelemetry');
+final logging.Logger _log = logging.Logger('opentelemetry');
 
 /// A key used to set and get values from a [Context].
 ///
