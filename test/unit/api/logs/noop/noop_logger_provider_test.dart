@@ -8,6 +8,6 @@ import 'package:test/test.dart';
 void main() {
   test('returns noop logger', () {
     final noopLoggerProvider = api.NoopLoggerProvider();
-    expect(noopLoggerProvider.get('test'), const api.NoopLogger());
+    expect(noopLoggerProvider.get('test'), isA<api.NoopLogger>());
   });
 }

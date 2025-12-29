@@ -8,7 +8,7 @@ This repository is the Dart implementation of the [OpenTelemetry project](https:
 | - | - |
 | Traces | Beta |
 | Metrics | Alpha |
-| Logs | Unimplemented |
+| Logs | Alpha |
 
 ## Getting Started
 
@@ -75,6 +75,192 @@ See the [attach detach context example](./example/attach_detach_context)for more
 In order to parent spans between processes, context can be serialized and deserialized using a `TextMapPropagator`, `TextMapSetter`, and `TextMapGetter`.
 
 See the [W3C context propagation example](./example/w3c_context_propagation.dart) for more information.
+
+## Logs
+
+OpenTelemetry provides a logging API and SDK for capturing structured logs with correlation to traces and spans.
+
+### Initialize the Logger Provider
+
+```dart
+import 'package:opentelemetry/sdk.dart';
+import 'package:opentelemetry/api.dart';
+
+void main() {
+  // Create a logger provider with processors and exporters
+  final loggerProvider = LoggerProviderImpl(
+    processors: [
+      SimpleLogRecordProcessor(ConsoleLogRecordExporter()),
+      BatchLogRecordProcessor(
+        InMemoryLogRecordExporter(),
+        scheduleDelay: Duration(seconds: 5),
+      ),
+    ],
+  );
+
+  // Get a logger instance
+  final logger = loggerProvider.getLogger('my-app');
+}
+```
+
+### Emit Log Records
+
+```dart
+import 'package:opentelemetry/api.dart';
+
+void main() {
+  final logger = loggerProvider.getLogger('my-app');
+
+  // Emit logs with different severity levels
+  logger.info('Application started');
+  logger.warn('Low memory warning');
+  logger.error('Failed to process request');
+
+  // Emit logs with attributes
+  logger.info(
+    'User logged in',
+    attributes: [
+      Attribute.fromString('user.id', '12345'),
+      Attribute.fromString('user.name', 'John Doe'),
+    ],
+  );
+
+  // Logs are automatically correlated with active spans
+  final tracer = globalTracerProvider.getTracer('my-app');
+  final span = tracer.startSpan('process-request');
+  
+  logger.info('Processing request'); // Correlated with span
+  
+  span.end();
+}
+```
+
+See the [logs example](./example/logs_example.dart) for more information.
+
+### Log Sampling
+
+Control which log records are processed and exported using samplers:
+
+```dart
+import 'package:opentelemetry/sdk.dart';
+
+void main() {
+  // Only record logs with severity >= WARN
+  final loggerProvider = LoggerProviderImpl(
+    processors: [SimpleLogRecordProcessor(ConsoleLogRecordExporter())],
+    sampler: SeverityBasedLogSampler(SeverityNumber.warn),
+  );
+
+  final logger = loggerProvider.get('my-app');
+  
+  logger.info('This will be dropped');  // Below threshold
+  logger.warn('This will be recorded');  // At threshold
+  logger.error('This will be recorded'); // Above threshold
+}
+```
+
+Available samplers:
+- `AlwaysOnLogSampler` - Records all logs (default)
+- `AlwaysOffLogSampler` - Drops all logs
+- `SeverityBasedLogSampler` - Records logs based on minimum severity level
+
+## Metrics
+
+OpenTelemetry provides a metrics API and SDK for capturing measurements and aggregations.
+
+### Initialize the Meter Provider
+
+```dart
+import 'package:opentelemetry/sdk.dart';
+import 'package:opentelemetry/api.dart';
+
+void main() {
+  // Create a meter provider with readers and exporters
+  final meterProvider = MeterProviderImpl(
+    readers: [
+      PeriodicMetricReader(
+        ConsoleMetricExporter(),
+        interval: Duration(seconds: 30),
+      ),
+    ],
+  );
+
+  // Get a meter instance
+  final meter = meterProvider.getMeter('my-app');
+}
+```
+
+### Record Metrics
+
+```dart
+import 'package:opentelemetry/api.dart';
+
+void main() {
+  final meter = meterProvider.getMeter('my-app');
+
+  // Create a counter for monotonically increasing values
+  final requestCounter = meter.createCounter<int>('requests');
+  requestCounter.add(1, attributes: [
+    Attribute.fromString('http.method', 'GET'),
+    Attribute.fromString('http.route', '/api/users'),
+  ]);
+
+  // Create an UpDownCounter for values that can go up or down
+  final activeConnections = meter.createUpDownCounter<int>('active_connections');
+  activeConnections.add(1); // Connection opened
+  activeConnections.add(-1); // Connection closed
+
+  // Create a histogram for recording distributions
+  final requestDuration = meter.createHistogram<double>('request_duration');
+  requestDuration.record(0.250, attributes: [
+    Attribute.fromString('http.route', '/api/users'),
+  ]);
+
+  // Create an observable gauge for async measurements
+  final cpuUsage = meter.createObservableGauge<double>(
+    'cpu_usage',
+    callback: (observer) {
+      observer([GaugeObservation(getCurrentCpuUsage())]);
+    },
+  );
+}
+```
+
+See the [metrics example](./example/metrics_example.dart) for more information.
+
+### Metric Filtering
+
+Control which metric measurements are recorded using filters:
+
+```dart
+import 'package:opentelemetry/sdk.dart';
+
+void main() {
+  // Only record metrics with 'environment=production' attribute
+  final meterProvider = MeterProviderImpl(
+    readers: [PeriodicMetricReader(ConsoleMetricExporter())],
+    filter: AttributeBasedFilter({'environment': 'production'}),
+  );
+
+  final meter = meterProvider.get('my-app');
+  final counter = meter.createCounter<int>('requests');
+  
+  // This will be dropped (doesn't match filter)
+  counter.add(1, attributes: [
+    Attribute.fromString('environment', 'development'),
+  ]);
+  
+  // This will be recorded (matches filter)
+  counter.add(1, attributes: [
+    Attribute.fromString('environment', 'production'),
+  ]);
+}
+```
+
+Available filters:
+- `AlwaysRecordFilter` - Records all measurements (default)
+- `NeverRecordFilter` - Drops all measurements
+- `AttributeBasedFilter` - Records measurements based on required attributes
 
 #### High Resolution Timestamps
 
